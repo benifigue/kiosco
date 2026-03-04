@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       id: user.id,
       name: user.name,
       username: user.username,
-      role: user.role,
+      role: user.role as 'ADMIN' | 'COLABORADOR',
     };
 
     await session.save();
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         id: user.id,
         name: user.name,
         username: user.username,
-        role: user.role,
+        role: user.role as 'ADMIN' | 'COLABORADOR',
       },
     });
   } catch (error) {
