@@ -7,6 +7,8 @@ import { sessionOptions, KioscoSession } from '@/lib/session';
 import { createLog } from '@/lib/log';
 import { apiError, apiSuccess } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as { username?: string; password?: string };

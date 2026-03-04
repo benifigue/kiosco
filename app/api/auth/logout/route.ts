@@ -4,6 +4,8 @@ import { sessionOptions, KioscoSession } from '@/lib/session';
 import { createLog } from '@/lib/log';
 import { apiSuccess } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST() {
   try {
     const cookieStore = cookies();
