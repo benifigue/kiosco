@@ -29,7 +29,7 @@ export async function middleware(request: NextRequest) {
 
   // Get session from request cookies
   const response = NextResponse.next();
-  const session = await getIronSession<KioscoSession>(request.cookies, sessionOptions);
+  const session = await getIronSession<KioscoSession>(request.cookies as any, sessionOptions);
 
   if (!session.user) {
     if (pathname.startsWith('/api/')) {
