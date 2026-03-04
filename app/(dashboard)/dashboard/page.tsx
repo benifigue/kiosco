@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { formatCurrency, getStartOfDay, getEndOfDay, getStartOfMonth, getEndOfMonth } from '@/lib/utils';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (!user) return null;
