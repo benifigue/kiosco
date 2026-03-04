@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Note: SQLite does not support native enums.
+// Enum values are stored as String and enforced at the application layer.
+// Valid values: Role = "ADMIN" | "COLABORADOR"
+//               PaymentMethod = "EFECTIVO" | "TRANSFERENCIA" | "DEBITO" | "CREDITO" | "MODO" | "MERCADOPAGO"
+//               MovementType  = "INCOME" | "EXPENSE"
+
+model User {
+  id             String         @id @default(cuid())
+  name           String
+  username       String         @unique
+  password       String
+  role           String         // "ADMIN" | "COLABORADOR"
+  sales          Sale[]
+  logs           SystemLog[]
+  cashRegisters  CashRegister[]
+  cashMovements  CashMovement[]
+  createdAt      DateTime       @default(now())
+}
+
+model Product {
+  id            String     @id @default(cuid())
+  name          String
+  barcode       String?
+  internalCode  String?
+  category      String
+  purchasePrice Float
+  salePrice     Float
+  stock         Int
+  minStock      Int
+  image         String?
+  active        Boolean    @default(true)
+  saleItems     SaleItem[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model Sale {
+  id            String     @id @default(cuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id])
+  items         SaleItem[]
+  totalAmount   Float
+  totalCost     Float
+  totalProfit   Float
+  paymentMethod String     // "EFECTIVO" | "TRANSFERENCIA" | "DEBITO" | "CREDITO" | "MODO" | "MERCADOPAGO"
+  createdAt     DateTime   @default(now())
+}
+
+model SaleItem {
+  id            String   @id @default(cuid())
+  saleId        String
+  sale          Sale     @relation(fields: [saleId], references: [id])
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id])
+  quantity      Int
+  salePrice     Float
+  purchasePrice Float
+}
+
+model CashRegister {
+  id             String    @id @default(cuid())
+  openedById     String
+  openedBy       User      @relation(fields: [openedById], references: [id])
+  openingAmount  Float
+  closingAmount  Float?
+  expectedAmount Float?
+  difference     Float?
+  openedAt       DateTime  @default(now())
+  closedAt       DateTime?
+}
+
+model CashMovement {
+  id          String   @id @default(cuid())
+  type        String   // "INCOME" | "EXPENSE"
+  amount      Float
+  description String
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model SystemLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  createdAt DateTime @default(now())
+}

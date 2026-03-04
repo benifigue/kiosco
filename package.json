@@ -1,0 +1,37 @@
+{
+  "name": "kiosco",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:seed": "ts-node --project tsconfig.seed.json prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "setup": "npm run db:push && npm run db:seed"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.7.0",
+    "bcrypt": "^5.1.1",
+    "chart.js": "^4.4.1",
+    "iron-session": "^8.0.1",
+    "next": "^14.0.4",
+    "react": "^18.2.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/node": "^20.10.6",
+    "@types/react": "^18.2.46",
+    "@types/react-dom": "^18.2.18",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "prisma": "^5.7.0",
+    "tailwindcss": "^3.4.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
