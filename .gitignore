@@ -5,10 +5,6 @@ node_modules/
 .next/
 out/
 
-# Database
-prisma/*.db
-prisma/*.db-journal
-
 # Environment
 .env.local
 .env.production
