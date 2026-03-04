@@ -4,6 +4,8 @@ import { getCurrentUser } from '@/lib/auth';
 import { createLog } from '@/lib/log';
 import { apiError, apiSuccess } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+
 type MovementType = 'INCOME' | 'EXPENSE';
 const VALID_MOVEMENT_TYPES: MovementType[] = ['INCOME', 'EXPENSE'];
 
