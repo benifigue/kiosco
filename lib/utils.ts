@@ -1,3 +1,5 @@
+import { NextResponse } from 'next/server';
+
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('es-AR', {
     style: 'currency',
@@ -58,9 +60,9 @@ export function getEndOfMonth(date: Date = new Date()): Date {
 }
 
 export function apiError(message: string, status: number = 400) {
-  return Response.json({ error: message }, { status });
+  return NextResponse.json({ error: message }, { status });
 }
 
 export function apiSuccess<T>(data: T, status: number = 200) {
-  return Response.json(data, { status });
+  return NextResponse.json(data, { status });
 }
