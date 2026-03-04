@@ -5,6 +5,8 @@ import { createLog } from '@/lib/log';
 import { apiError, apiSuccess } from '@/lib/utils';
 import bcrypt from 'bcrypt';
 
+export const dynamic = 'force-dynamic';
+
 type Role = 'ADMIN' | 'COLABORADOR';
 const VALID_ROLES: Role[] = ['ADMIN', 'COLABORADOR'];
 

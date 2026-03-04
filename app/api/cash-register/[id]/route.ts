@@ -4,6 +4,8 @@ import { getCurrentUser } from '@/lib/auth';
 import { createLog } from '@/lib/log';
 import { apiError, apiSuccess } from '@/lib/utils';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } }
