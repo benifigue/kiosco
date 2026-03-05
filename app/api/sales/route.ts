@@ -64,6 +64,15 @@ export async function POST(request: NextRequest) {
 
     const { items, paymentMethod } = body;
 
+    // Check if there's an open cash register
+    const openRegister = await prisma.cashRegister.findFirst({
+      where: { closedAt: null },
+    });
+
+    if (!openRegister) {
+      return apiError('No hay una caja abierta. Debe abrir la caja antes de registrar una venta.');
+    }
+
     if (!items || items.length === 0) {
       return apiError('El carrito está vacío');
     }

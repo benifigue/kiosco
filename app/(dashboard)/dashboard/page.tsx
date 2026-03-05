@@ -100,20 +100,22 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Stats grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '16px',
-          marginBottom: '24px',
-        }}
-      >
-        <StatCard title="Ventas hoy" value={formatCurrency(todayTotal)} sub={`${todaySales.length} transacciones`} color="#0ea5e9" />
-        <StatCard title="Ganancia hoy" value={formatCurrency(todayProfit)} sub={`${todayTotal > 0 ? ((todayProfit / todayTotal) * 100).toFixed(1) : 0}% margen`} color="#10b981" />
-        <StatCard title="Ventas del mes" value={formatCurrency(monthTotal)} sub={`${monthSales.length} transacciones`} color="#818cf8" />
-        <StatCard title="Ganancia del mes" value={formatCurrency(monthProfit)} sub="ganancia neta" color="#f59e0b" />
-      </div>
+      {/* Stats grid (Admin only) */}
+      {user.role === 'ADMIN' && (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '16px',
+            marginBottom: '24px',
+          }}
+        >
+          <StatCard title="Ventas hoy" value={formatCurrency(todayTotal)} sub={`${todaySales.length} transacciones`} color="#0ea5e9" />
+          <StatCard title="Ganancia hoy" value={formatCurrency(todayProfit)} sub={`${todayTotal > 0 ? ((todayProfit / todayTotal) * 100).toFixed(1) : 0}% margen`} color="#10b981" />
+          <StatCard title="Ventas del mes" value={formatCurrency(monthTotal)} sub={`${monthSales.length} transacciones`} color="#818cf8" />
+          <StatCard title="Ganancia del mes" value={formatCurrency(monthProfit)} sub="ganancia neta" color="#f59e0b" />
+        </div>
+      )}
 
       {/* Bottom grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '20px' }}>

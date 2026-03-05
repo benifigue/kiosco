@@ -25,6 +25,8 @@ export async function GET(request: NextRequest) {
           ...(to ? { lte: new Date(to) } : {}),
         },
       } : {}),
+      // Filter by userId if the requester is a COLABORADOR
+      ...(user.role === 'COLABORADOR' ? { userId: user.id } : {}),
     },
     include: {
       user: { select: { id: true, name: true, username: true } },

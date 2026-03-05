@@ -20,7 +20,50 @@ export async function GET(
 
   if (!register) return apiError('Caja no encontrada', 404);
 
-  return apiSuccess(register);
+  // For detailed view (only for ADMIN)
+  if (user.role === 'ADMIN') {
+    const start = register.openedAt;
+    const end = register.closedAt || new Date();
+
+    const [movements, sales] = await Promise.all([
+      prisma.cashMovement.findMany({
+        where: { createdAt: { gte: start, lte: end } },
+        include: { user: { select: { name: true } } },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.sale.findMany({
+        where: { createdAt: { gte: start, lte: end } },
+        include: { user: { select: { name: true } } },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    const cashSales = sales.filter((s) => s.paymentMethod === 'EFECTIVO');
+    const transferSales = sales.filter((s) => ['TRANSFERENCIA', 'MODO', 'MERCADOPAGO'].includes(s.paymentMethod));
+    const cardSales = sales.filter((s) => ['DEBITO', 'CREDITO'].includes(s.paymentMethod));
+
+    const totals = {
+      cash: cashSales.reduce((sum, s) => sum + s.totalAmount, 0),
+      transfer: transferSales.reduce((sum, s) => sum + s.totalAmount, 0),
+      card: cardSales.reduce((sum, s) => sum + s.totalAmount, 0),
+      income: movements.filter((m) => m.type === 'INCOME').reduce((sum, m) => sum + m.amount, 0),
+      expense: movements.filter((m) => m.type === 'EXPENSE').reduce((sum, m) => sum + m.amount, 0),
+    };
+
+    return apiSuccess({
+      ...register,
+      movements,
+      sales,
+      totals,
+    });
+  }
+
+  // Limited view for non-ADMIN
+  return apiSuccess({
+    ...register,
+    expectedAmount: undefined,
+    difference: undefined,
+  });
 }
 
 export async function PUT(
@@ -78,7 +121,13 @@ export async function PUT(
       `Caja cerrada. Esperado: $${expectedAmount.toFixed(2)}, Real: $${closingAmount.toFixed(2)}, Diferencia: $${difference.toFixed(2)}`
     );
 
-    return apiSuccess(updated);
+    const result = {
+      ...updated,
+      expectedAmount: user.role === 'ADMIN' ? expectedAmount : undefined,
+      difference: user.role === 'ADMIN' ? difference : undefined,
+    };
+
+    return apiSuccess(result);
   } catch (error) {
     console.error('Close cash register error:', error);
     return apiError('Error al cerrar caja', 500);

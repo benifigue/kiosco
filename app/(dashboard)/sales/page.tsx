@@ -36,6 +36,7 @@ type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 export default function SalesPage() {
   const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
+  const [isRegisterOpen, setIsRegisterOpen] = useState<boolean | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<Product[]>([]);
@@ -52,7 +53,18 @@ export default function SalesPage() {
 
   useEffect(() => {
     loadProducts();
+    checkRegister();
   }, []);
+
+  async function checkRegister() {
+    try {
+      const res = await fetch("/api/cash-register?open=true");
+      const data = await res.json();
+      setIsRegisterOpen(!!data);
+    } catch {
+      setIsRegisterOpen(false);
+    }
+  }
 
   useEffect(() => {
     if (search.length < 1) {
@@ -97,15 +109,18 @@ export default function SalesPage() {
   }
 
   function updateQuantity(productId: string, qty: number) {
-    if (qty <= 0) {
-      removeFromCart(productId);
-      return;
-    }
+    // We allow zero or negative values temporarily while typing
     setCart((prev) =>
       prev.map((i) =>
         i.product.id === productId ? { ...i, quantity: qty } : i,
       ),
     );
+  }
+
+  function handleBlur(productId: string, quantity: number) {
+    if (quantity <= 0) {
+      removeFromCart(productId);
+    }
   }
 
   function removeFromCart(productId: string) {
@@ -191,8 +206,48 @@ export default function SalesPage() {
         gridTemplateColumns: "1fr 360px",
         gap: "20px",
         height: "calc(100vh - 56px)",
+        position: "relative",
       }}
     >
+      {isRegisterOpen === false && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(255,255,255,0.7)",
+            backdropFilter: "blur(4px)",
+            zIndex: 100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            className="card"
+            style={{
+              textAlign: "center",
+              maxWidth: "400px",
+              boxShadow: "0 20px 50px rgba(0,0,0,0.15)",
+            }}
+          >
+            <div style={{ fontSize: "48px", marginBottom: "16px" }}>🔒</div>
+            <h2 style={{ margin: "0 0 12px" }}>Caja cerrada</h2>
+            <p
+              style={{
+                color: "var(--text-muted)",
+                marginBottom: "20px",
+                lineHeight: "1.5",
+              }}
+            >
+              No puede realizar ventas si la caja no está abierta. Por favor,
+              diríjase a la sección de Caja para realizar la apertura.
+            </p>
+            <a href="/cash" className="btn btn-primary">
+              Ir a Control de Caja
+            </a>
+          </div>
+        </div>
+      )}
       {/* Left: product search */}
       <div
         style={{
@@ -375,18 +430,19 @@ export default function SalesPage() {
                         </button>
                         <input
                           type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) =>
-                            updateQuantity(
-                              item.product.id,
-                              Number(e.target.value),
-                            )
-                          }
+                          value={item.quantity === 0 ? "" : item.quantity}
+                          onChange={(e) => {
+                            const val = e.target.value === "" ? 0 : Number(e.target.value);
+                            updateQuantity(item.product.id, val);
+                          }}
+                          onBlur={(e) => {
+                            const val = e.target.value === "" ? 0 : Number(e.target.value);
+                            handleBlur(item.product.id, val);
+                          }}
                           style={{
-                            width: "48px",
+                            width: "56px",
                             textAlign: "center",
-                            padding: "4px",
+                            padding: "6px",
                             background: "var(--bg)",
                             border: "1px solid var(--border)",
                             borderRadius: "6px",
@@ -445,57 +501,24 @@ export default function SalesPage() {
             display: "flex",
             flexDirection: "column",
             gap: "8px",
-            padding: "12px",
+            padding: "16px",
             background: "var(--bg)",
             borderRadius: "8px",
+            border: "1px solid var(--border)",
           }}
         >
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
-              fontSize: "13px",
+              alignItems: "center",
             }}
           >
-            <span style={{ color: "var(--text-muted)" }}>
-              Subtotal ({cart.length} items)
-            </span>
-            <span>{formatCurrency(totalAmount)}</span>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              fontSize: "13px",
-            }}
-          >
-            <span style={{ color: "var(--text-muted)" }}>Costo</span>
-            <span>{formatCurrency(totalCost)}</span>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              fontSize: "13px",
-              color: "var(--success)",
-            }}
-          >
-            <span>Ganancia</span>
-            <span>{formatCurrency(totalProfit)}</span>
-          </div>
-          <div
-            style={{
-              borderTop: "1px solid var(--border)",
-              paddingTop: "8px",
-              display: "flex",
-              justifyContent: "space-between",
-            }}
-          >
-            <span style={{ fontWeight: 700, fontSize: "16px" }}>TOTAL</span>
+            <span style={{ fontWeight: 700, fontSize: "16px", color: "var(--text-secondary)" }}>TOTAL A COBRAR</span>
             <span
               style={{
-                fontWeight: 700,
-                fontSize: "20px",
+                fontWeight: 800,
+                fontSize: "28px",
                 fontFamily: "var(--font-display)",
                 color: "var(--accent)",
               }}

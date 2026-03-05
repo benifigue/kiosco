@@ -20,16 +20,70 @@ export async function GET(request: NextRequest) {
       include: { openedBy: { select: { id: true, name: true, username: true } } },
       orderBy: { openedAt: 'desc' },
     });
-    return apiSuccess(register);
+
+    if (register) {
+      // Get all sales since open
+      const [movements, sales] = await Promise.all([
+        prisma.cashMovement.findMany({
+          where: { createdAt: { gte: register.openedAt } },
+        }),
+        prisma.sale.findMany({
+          where: { createdAt: { gte: register.openedAt } },
+        }),
+      ]);
+
+      const totalIncome = movements
+        .filter((m) => m.type === 'INCOME')
+        .reduce((sum, m) => sum + m.amount, 0);
+
+      const totalExpense = movements
+        .filter((m) => m.type === 'EXPENSE')
+        .reduce((sum, m) => sum + m.amount, 0);
+
+      // Digital payment totals
+      const transferTotal = sales
+        .filter((s) => ['TRANSFERENCIA', 'MODO', 'MERCADOPAGO'].includes(s.paymentMethod))
+        .reduce((sum, s) => sum + s.totalAmount, 0);
+
+      const cardTotal = sales
+        .filter((s) => ['DEBITO', 'CREDITO'].includes(s.paymentMethod))
+        .reduce((sum, s) => sum + s.totalAmount, 0);
+
+      const currentBalance = register.openingAmount + totalIncome - totalExpense;
+
+      // Hide fields if user is COLABORADOR
+      const result = {
+        ...register,
+        currentBalance: user.role === 'ADMIN' ? currentBalance : undefined,
+        transferTotal,
+        cardTotal,
+        expectedAmount: user.role === 'ADMIN' ? register.expectedAmount : undefined,
+        difference: user.role === 'ADMIN' ? register.difference : undefined,
+      };
+
+      return apiSuccess(result);
+    }
+
+    return apiSuccess(null);
   }
 
   const registers = await prisma.cashRegister.findMany({
+    where: {
+      ...(user.role === 'COLABORADOR' ? { openedById: user.id } : {}),
+    },
     include: { openedBy: { select: { id: true, name: true, username: true } } },
     orderBy: { openedAt: 'desc' },
     take: 50,
   });
 
-  return apiSuccess(registers);
+  // For history, also filter fields if COLABORADOR
+  const filteredRegisters = registers.map((r) => ({
+    ...r,
+    expectedAmount: user.role === 'ADMIN' ? r.expectedAmount : undefined,
+    difference: user.role === 'ADMIN' ? r.difference : undefined,
+  }));
+
+  return apiSuccess(filteredRegisters);
 }
 
 export async function POST(request: NextRequest) {

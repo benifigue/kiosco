@@ -12,9 +12,18 @@ interface CashRegister {
   closingAmount: number | null;
   expectedAmount: number | null;
   difference: number | null;
+  currentBalance?: number;
+  transferTotal?: number;
+  cardTotal?: number;
   openedAt: string;
   closedAt: string | null;
   openedBy: { id: string; name: string; username: string };
+}
+
+interface User {
+  id: string;
+  name: string;
+  role: "ADMIN" | "COLABORADOR";
 }
 
 interface CashMovement {
@@ -28,6 +37,7 @@ interface CashMovement {
 
 export default function CashPage() {
   const { showToast } = useToast();
+  const [user, setUser] = useState<User | null>(null);
   const [openRegister, setOpenRegister] = useState<CashRegister | null | false>(
     false,
   ); // false = loading
@@ -36,6 +46,7 @@ export default function CashPage() {
   const [tab, setTab] = useState<"current" | "movements" | "history">(
     "current",
   );
+  const [selectedRegister, setSelectedRegister] = useState<any>(null);
 
   // Forms
   const [openingAmount, setOpeningAmount] = useState("");
@@ -47,7 +58,18 @@ export default function CashPage() {
 
   useEffect(() => {
     loadAll();
+    loadUser();
   }, []);
+
+  async function loadUser() {
+    try {
+      const res = await fetch("/api/auth/me");
+      const data = (await res.json()) as User;
+      setUser(data);
+    } catch {
+      console.error("Error loading user");
+    }
+  }
 
   async function loadAll() {
     await Promise.all([loadOpenRegister(), loadHistory(), loadMovements()]);
@@ -77,6 +99,17 @@ export default function CashPage() {
       const data = (await res.json()) as CashMovement[];
       setMovements(data);
     } catch {}
+  }
+
+  async function loadDetail(id: string) {
+    if (user?.role !== "ADMIN") return;
+    try {
+      const res = await fetch(`/api/cash-register/${id}`);
+      const data = await res.json();
+      setSelectedRegister(data);
+    } catch {
+      showToast("Error al cargar detalle", "error");
+    }
   }
 
   async function handleOpenRegister(e: FormEvent) {
@@ -157,12 +190,16 @@ export default function CashPage() {
     }
   }
 
-  // Calculate current balance from movements
-  const totalIncome = movements.reduce(
+  // Calculate current balance from movements since opening
+  const sessionMovements = openRegister 
+    ? movements.filter(m => new Date(m.createdAt) >= new Date(openRegister.openedAt))
+    : [];
+
+  const totalIncome = sessionMovements.reduce(
     (s, m) => (m.type === "INCOME" ? s + m.amount : s),
     0,
   );
-  const totalExpense = movements.reduce(
+  const totalExpense = sessionMovements.reduce(
     (s, m) => (m.type === "EXPENSE" ? s + m.amount : s),
     0,
   );
@@ -279,7 +316,7 @@ export default function CashPage() {
                         letterSpacing: "0.05em",
                       }}
                     >
-                      Ingresos
+                      {user?.role === "ADMIN" ? "Ingresos (Efectivo)" : "Transferencia"}
                     </div>
                     <div
                       style={{
@@ -288,7 +325,9 @@ export default function CashPage() {
                         color: "var(--success)",
                       }}
                     >
-                      {formatCurrency(totalIncome)}
+                      {formatCurrency(
+                        user?.role === "ADMIN" ? totalIncome : (openRegister.transferTotal ?? 0)
+                      )}
                     </div>
                   </div>
                   <div
@@ -336,7 +375,7 @@ export default function CashPage() {
                         letterSpacing: "0.05em",
                       }}
                     >
-                      Esperado
+                      {user?.role === "ADMIN" ? "Esperado (Efectivo)" : "Tarjeta"}
                     </div>
                     <div
                       style={{
@@ -346,7 +385,9 @@ export default function CashPage() {
                       }}
                     >
                       {formatCurrency(
-                        openRegister.openingAmount + totalIncome - totalExpense,
+                        user?.role === "ADMIN"
+                          ? (openRegister.currentBalance ?? (openRegister.openingAmount + totalIncome - totalExpense))
+                          : (openRegister.cardTotal ?? 0)
                       )}
                     </div>
                   </div>
@@ -409,7 +450,7 @@ export default function CashPage() {
                   onChange={(e) => setClosingAmount(e.target.value)}
                   style={{ marginBottom: "12px" }}
                 />
-                {closingAmount && (
+                {closingAmount && user?.role === "ADMIN" && (
                   <div
                     style={{
                       marginBottom: "12px",
@@ -431,9 +472,10 @@ export default function CashPage() {
                       </span>
                       <span>
                         {formatCurrency(
-                          openRegister.openingAmount +
-                            totalIncome -
-                            totalExpense,
+                          openRegister.currentBalance ??
+                            openRegister.openingAmount +
+                              totalIncome -
+                              totalExpense,
                         )}
                       </span>
                     </div>
@@ -452,9 +494,10 @@ export default function CashPage() {
                           color:
                             Math.abs(
                               Number(closingAmount) -
-                                (openRegister.openingAmount +
-                                  totalIncome -
-                                  totalExpense),
+                                (openRegister.currentBalance ??
+                                  openRegister.openingAmount +
+                                    totalIncome -
+                                    totalExpense),
                             ) < 0.01
                               ? "var(--success)"
                               : "var(--danger)",
@@ -462,9 +505,10 @@ export default function CashPage() {
                       >
                         {formatCurrency(
                           Number(closingAmount) -
-                            (openRegister.openingAmount +
-                              totalIncome -
-                              totalExpense),
+                            (openRegister.currentBalance ??
+                              openRegister.openingAmount +
+                                totalIncome -
+                                totalExpense),
                         )}
                       </span>
                     </div>
@@ -661,9 +705,9 @@ export default function CashPage() {
                 <th>Apertura</th>
                 <th>Cierre</th>
                 <th>Monto apertura</th>
-                <th>Monto esperado</th>
+                {user?.role === "ADMIN" && <th>Monto esperado</th>}
                 <th>Monto real</th>
-                <th>Diferencia</th>
+                {user?.role === "ADMIN" && <th>Diferencia</th>}
                 <th>Responsable</th>
                 <th>Estado</th>
               </tr>
@@ -672,7 +716,7 @@ export default function CashPage() {
               {history.length === 0 && (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={user?.role === "ADMIN" ? 8 : 6}
                     style={{
                       textAlign: "center",
                       padding: "24px",
@@ -684,37 +728,48 @@ export default function CashPage() {
                 </tr>
               )}
               {history.map((r) => (
-                <tr key={r.id}>
+                <tr
+                  key={r.id}
+                  onDoubleClick={() => loadDetail(r.id)}
+                  style={{ cursor: user?.role === "ADMIN" ? "pointer" : "default" }}
+                  title={user?.role === "ADMIN" ? "Doble clic para ver detalles" : ""}
+                >
                   <td style={{ fontSize: "12px" }}>{formatDate(r.openedAt)}</td>
                   <td style={{ fontSize: "12px" }}>
                     {r.closedAt ? formatDate(r.closedAt) : "—"}
                   </td>
                   <td>{formatCurrency(r.openingAmount)}</td>
-                  <td>
-                    {r.expectedAmount != null
-                      ? formatCurrency(r.expectedAmount)
-                      : "—"}
-                  </td>
+                  {user?.role === "ADMIN" && (
+                    <td>
+                      {r.expectedAmount != null
+                        ? formatCurrency(r.expectedAmount)
+                        : "—"}
+                    </td>
+                  )}
                   <td>
                     {r.closingAmount != null
                       ? formatCurrency(r.closingAmount)
                       : "—"}
                   </td>
-                  <td
-                    style={{
-                      fontWeight: 600,
-                      color:
-                        r.difference != null
-                          ? Math.abs(r.difference) < 0.01
-                            ? "var(--success)"
-                            : r.difference < 0
-                              ? "var(--danger)"
-                              : "var(--warning)"
-                          : "var(--text-muted)",
-                    }}
-                  >
-                    {r.difference != null ? formatCurrency(r.difference) : "—"}
-                  </td>
+                  {user?.role === "ADMIN" && (
+                    <td
+                      style={{
+                        fontWeight: 600,
+                        color:
+                          r.difference != null
+                            ? Math.abs(r.difference) < 0.01
+                              ? "var(--success)"
+                              : r.difference < 0
+                                ? "var(--danger)"
+                                : "var(--warning)"
+                            : "var(--text-muted)",
+                      }}
+                    >
+                      {r.difference != null
+                        ? formatCurrency(r.difference)
+                        : "—"}
+                    </td>
+                  )}
                   <td>{r.openedBy.name}</td>
                   <td>
                     <span
@@ -727,6 +782,129 @@ export default function CashPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Admin Detail Modal */}
+      {selectedRegister && (
+        <div className="modal-overlay" onClick={() => setSelectedRegister(null)}>
+          <div
+            className="modal"
+            style={{ maxWidth: "900px", width: "95%", maxHeight: "90vh", overflow: "auto" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "20px",
+                borderBottom: "1px solid var(--border)",
+                paddingBottom: "12px",
+              }}
+            >
+              <h2 style={{ margin: 0 }}>Detalle de Caja</h2>
+              <button className="btn btn-ghost" onClick={() => setSelectedRegister(null)}>✕</button>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
+              <div className="card" style={{ background: "var(--bg)" }}>
+                <h4 style={{ margin: "0 0 10px", fontSize: "14px" }}>Información General</h4>
+                <div style={{ fontSize: "13px", display: "grid", gap: "6px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--text-muted)" }}>Apertura:</span>
+                    <span>{formatDate(selectedRegister.openedAt)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--text-muted)" }}>Cierre:</span>
+                    <span>{selectedRegister.closedAt ? formatDate(selectedRegister.closedAt) : "En curso"}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--text-muted)" }}>Responsable:</span>
+                    <span>{selectedRegister.openedBy.name}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card" style={{ background: "var(--bg)" }}>
+                <h4 style={{ margin: "0 0 10px", fontSize: "14px" }}>Resumen de Valores</h4>
+                <div style={{ fontSize: "13px", display: "grid", gap: "6px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--text-muted)" }}>Efectivo (Ventas + Movimientos):</span>
+                    <span>{formatCurrency(selectedRegister.totals.cash + selectedRegister.totals.income - selectedRegister.totals.expense)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--text-muted)" }}>Transferencias / QR:</span>
+                    <span>{formatCurrency(selectedRegister.totals.transfer)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--text-muted)" }}>Tarjetas:</span>
+                    <span>{formatCurrency(selectedRegister.totals.card)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, borderTop: "1px solid var(--border)", paddingTop: "6px", marginTop: "4px" }}>
+                    <span>TOTAL OPERADO:</span>
+                    <span>{formatCurrency(selectedRegister.totals.cash + selectedRegister.totals.transfer + selectedRegister.totals.card + selectedRegister.totals.income - selectedRegister.totals.expense)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+              <div>
+                <h4 style={{ margin: "0 0 10px", fontSize: "14px" }}>Ventas ({selectedRegister.sales.length})</h4>
+                <div className="table-wrapper" style={{ maxHeight: "300px", overflow: "auto" }}>
+                  <table style={{ fontSize: "12px" }}>
+                    <thead>
+                      <tr>
+                        <th>Hora</th>
+                        <th>Total</th>
+                        <th>Método</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedRegister.sales.map((s: any) => (
+                        <tr key={s.id}>
+                          <td>{new Date(s.createdAt).toLocaleTimeString()}</td>
+                          <td style={{ fontWeight: 600 }}>{formatCurrency(s.totalAmount)}</td>
+                          <td><span className="badge badge-info" style={{ fontSize: "10px" }}>{s.paymentMethod}</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div>
+                <h4 style={{ margin: "0 0 10px", fontSize: "14px" }}>Movimientos ({selectedRegister.movements.length})</h4>
+                <div className="table-wrapper" style={{ maxHeight: "300px", overflow: "auto" }}>
+                  <table style={{ fontSize: "12px" }}>
+                    <thead>
+                      <tr>
+                        <th>Tipo</th>
+                        <th>Monto</th>
+                        <th>Descripción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedRegister.movements.map((m: any) => (
+                        <tr key={m.id}>
+                          <td>
+                            <span className={`badge ${m.type === "INCOME" ? "badge-success" : "badge-danger"}`} style={{ fontSize: "10px" }}>
+                              {m.type === "INCOME" ? "↑" : "↓"}
+                            </span>
+                          </td>
+                          <td style={{ fontWeight: 600, color: m.type === "INCOME" ? "var(--success)" : "var(--danger)" }}>
+                            {formatCurrency(m.amount)}
+                          </td>
+                          <td style={{ fontSize: "11px" }}>{m.description}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
