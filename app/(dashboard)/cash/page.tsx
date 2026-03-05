@@ -854,8 +854,12 @@ export default function CashPage() {
                 <h4 style={{ margin: "0 0 10px", fontSize: "14px" }}>Resumen de Valores</h4>
                 <div style={{ fontSize: "13px", display: "grid", gap: "6px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ color: "var(--text-muted)" }}>Efectivo (Ventas + Movimientos):</span>
-                    <span>{formatCurrency(selectedRegister.totals.cash + selectedRegister.totals.income - selectedRegister.totals.expense)}</span>
+                    <span style={{ color: "var(--text-muted)" }}>Ventas en Efectivo:</span>
+                    <span>{formatCurrency(selectedRegister.totals.cash)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--text-muted)" }}>Movimientos Manuales (Neto):</span>
+                    <span>{formatCurrency(selectedRegister.totals.income - selectedRegister.totals.cash - selectedRegister.totals.expense)}</span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <span style={{ color: "var(--text-muted)" }}>Transferencias / QR:</span>
@@ -867,7 +871,7 @@ export default function CashPage() {
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, borderTop: "1px solid var(--border)", paddingTop: "6px", marginTop: "4px" }}>
                     <span>TOTAL OPERADO:</span>
-                    <span>{formatCurrency(selectedRegister.totals.cash + selectedRegister.totals.transfer + selectedRegister.totals.card + selectedRegister.totals.income - selectedRegister.totals.expense)}</span>
+                    <span>{formatCurrency(selectedRegister.totals.income - selectedRegister.totals.expense + selectedRegister.totals.transfer + selectedRegister.totals.card)}</span>
                   </div>
                 </div>
               </div>
