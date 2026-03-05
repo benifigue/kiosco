@@ -64,8 +64,12 @@ export default function CashPage() {
   async function loadUser() {
     try {
       const res = await fetch("/api/auth/me");
-      const data = (await res.json()) as User;
-      setUser(data);
+      const data = await res.json();
+      // Some APIs might wrap in { user: ... }, some might return user directly
+      const userData = data?.user || data;
+      if (userData && userData.role) {
+        setUser(userData);
+      }
     } catch {
       console.error("Error loading user");
     }
@@ -78,8 +82,13 @@ export default function CashPage() {
   async function loadOpenRegister() {
     try {
       const res = await fetch("/api/cash-register?open=true");
-      const data = (await res.json()) as CashRegister | null;
-      setOpenRegister(data);
+      const data = await res.json();
+      // The API might return { error: ... } or the register directly
+      if (res.ok) {
+        setOpenRegister(data as CashRegister | null);
+      } else {
+        setOpenRegister(null);
+      }
     } catch {
       setOpenRegister(null);
     }
@@ -88,27 +97,42 @@ export default function CashPage() {
   async function loadHistory() {
     try {
       const res = await fetch("/api/cash-register");
-      const data = (await res.json()) as CashRegister[];
-      setHistory(data);
+      const data = await res.json();
+      if (res.ok) {
+        setHistory(Array.isArray(data) ? data : []);
+      }
     } catch {}
   }
 
   async function loadMovements() {
     try {
       const res = await fetch("/api/cash-movements");
-      const data = (await res.json()) as CashMovement[];
-      setMovements(data);
+      const data = await res.json();
+      if (res.ok) {
+        setMovements(Array.isArray(data) ? data : []);
+      }
     } catch {}
   }
 
   async function loadDetail(id: string) {
-    if (user?.role !== "ADMIN") return;
+    if (!user) {
+      showToast("Cargando información de usuario...", "info");
+      return;
+    }
+
+    const role = user.role?.toString().toUpperCase().trim();
+    if (role !== "ADMIN") {
+      showToast(`Acceso denegado: Su rol (${role || 'desconocido'}) no es ADMINISTRADOR`, "error");
+      return;
+    }
+
     try {
       const res = await fetch(`/api/cash-register/${id}`);
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error");
       setSelectedRegister(data);
-    } catch {
-      showToast("Error al cargar detalle", "error");
+    } catch (err: any) {
+      showToast(err.message || "Error al cargar detalle", "error");
     }
   }
 
@@ -731,8 +755,8 @@ export default function CashPage() {
                 <tr
                   key={r.id}
                   onDoubleClick={() => loadDetail(r.id)}
-                  style={{ cursor: user?.role === "ADMIN" ? "pointer" : "default" }}
-                  title={user?.role === "ADMIN" ? "Doble clic para ver detalles" : ""}
+                  style={{ cursor: "pointer" }}
+                  title="Doble clic para ver detalles"
                 >
                   <td style={{ fontSize: "12px" }}>{formatDate(r.openedAt)}</td>
                   <td style={{ fontSize: "12px" }}>

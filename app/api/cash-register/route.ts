@@ -42,11 +42,11 @@ export async function GET(request: NextRequest) {
 
       // Digital payment totals
       const transferTotal = sales
-        .filter((s) => ['TRANSFERENCIA', 'MODO', 'MERCADOPAGO'].includes(s.paymentMethod))
+        .filter((s) => ['TRANSFERENCIA', 'MERCADOPAGO'].includes(s.paymentMethod))
         .reduce((sum, s) => sum + s.totalAmount, 0);
 
       const cardTotal = sales
-        .filter((s) => ['DEBITO', 'CREDITO'].includes(s.paymentMethod))
+        .filter((s) => ['DEBITO', 'CREDITO', 'MODO'].includes(s.paymentMethod))
         .reduce((sum, s) => sum + s.totalAmount, 0);
 
       const currentBalance = register.openingAmount + totalIncome - totalExpense;
