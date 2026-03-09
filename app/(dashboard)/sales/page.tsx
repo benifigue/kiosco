@@ -318,7 +318,7 @@ export default function SalesPage() {
                         }}
                       >
                         {p.name}
-                        {p.stock === 0 && (
+                        {p.stock <= 0 && (
                           <span
                             style={{
                               marginLeft: "8px",
@@ -326,7 +326,7 @@ export default function SalesPage() {
                               fontSize: "11px",
                             }}
                           >
-                            ⚠ Sin stock
+                            ⚠ Sin stock ({p.stock})
                           </span>
                         )}
                         {p.stock > 0 && p.stock <= p.minStock && (
@@ -344,7 +344,7 @@ export default function SalesPage() {
                       <div
                         style={{ fontSize: "11px", color: "var(--text-muted)" }}
                       >
-                        {p.category} • Stock: {p.stock}
+                        {p.category} • Stock: {p.stock <= 0 ? `Sin stock (${p.stock})` : p.stock}
                         {p.barcode && ` • ${p.barcode}`}
                       </div>
                     </div>

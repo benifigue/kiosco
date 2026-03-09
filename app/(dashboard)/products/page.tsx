@@ -112,7 +112,7 @@ export default function ProductsPage() {
     
     let matchesStock = true;
     if (stockFilter === "low") matchesStock = p.stock > 0 && p.stock <= p.minStock;
-    if (stockFilter === "none") matchesStock = p.stock === 0;
+    if (stockFilter === "none") matchesStock = p.stock <= 0;
 
     const q = search.toLowerCase();
     const matchesGeneral = 
@@ -396,7 +396,7 @@ export default function ProductsPage() {
                       ).toFixed(1)
                     : "0";
                 const stockStatus =
-                  p.stock === 0
+                  p.stock <= 0
                     ? "danger"
                     : p.stock <= p.minStock
                       ? "warning"
@@ -430,8 +430,8 @@ export default function ProductsPage() {
                     <td style={{ color: "var(--success)" }}>{margin}%</td>
                     <td>
                       <span className={`badge badge-${stockStatus}`}>
-                        {p.stock === 0
-                          ? "⚠ Sin stock"
+                        {p.stock <= 0
+                          ? `⚠ Sin stock (${p.stock})`
                           : p.stock <= p.minStock
                             ? `⚡ ${p.stock}`
                             : p.stock}

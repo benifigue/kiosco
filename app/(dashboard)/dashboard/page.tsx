@@ -134,7 +134,7 @@ export default async function DashboardPage() {
                   <th>Items</th>
                   <th>Total</th>
                   <th>Método</th>
-                  <th>Hora</th>
+                  <th>Fecha y Hora</th>
                 </tr>
               </thead>
               <tbody>
@@ -157,7 +157,7 @@ export default async function DashboardPage() {
                       <span className="badge badge-info">{sale.paymentMethod}</span>
                     </td>
                     <td style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
-                      {new Date(sale.createdAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(sale.createdAt).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     </td>
                   </tr>
                 ))}
@@ -188,15 +188,15 @@ export default async function DashboardPage() {
                     padding: '8px 10px',
                     borderRadius: '8px',
                     marginBottom: '4px',
-                    background: p.stock === 0 ? 'rgba(239,68,68,0.06)' : 'rgba(245,158,11,0.06)',
+                    background: p.stock <= 0 ? 'rgba(239,68,68,0.06)' : 'rgba(245,158,11,0.06)',
                   }}
                 >
                   <div>
                     <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{p.name}</div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Mín: {p.minStock}</div>
                   </div>
-                  <span className={`badge ${p.stock === 0 ? 'badge-danger' : 'badge-warning'}`}>
-                    {p.stock === 0 ? 'Sin stock' : `${p.stock} u.`}
+                  <span className={`badge ${p.stock <= 0 ? 'badge-danger' : 'badge-warning'}`}>
+                    {p.stock <= 0 ? `Sin stock (${p.stock})` : `${p.stock} u.`}
                   </span>
                 </div>
               ))
