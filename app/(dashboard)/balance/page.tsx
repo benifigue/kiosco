@@ -16,6 +16,7 @@ interface BalanceData {
 export default function BalancePage() {
   const [balance, setBalance] = useState<BalanceData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
@@ -25,15 +26,22 @@ export default function BalancePage() {
 
   async function loadBalance() {
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams();
       if (dateFrom) params.set('from', dateFrom);
       if (dateTo) params.set('to', dateTo);
       const res = await fetch(`/api/balance?${params}`);
-      const data = await res.json() as BalanceData;
-      setBalance(data);
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setError(data.error || "Error al cargar balance");
+        return;
+      }
+      
+      setBalance(data as BalanceData);
     } catch {
-      console.error('Error loading balance');
+      setError('Error de conexión al cargar balance');
     } finally {
       setLoading(false);
     }
@@ -60,7 +68,21 @@ export default function BalancePage() {
         </div>
       </div>
 
-      {loading ? (
+      {error ? (
+        <div className="card" style={{ textAlign: 'center', padding: '60px', border: '1px dashed var(--border)' }}>
+          <div style={{ fontSize: '64px', marginBottom: '20px' }}>📊</div>
+          <h2 style={{ fontSize: '20px', marginBottom: '12px', color: 'var(--text-primary)' }}>Funcionalidad Premium</h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', maxWidth: '450px', margin: '0 auto 24px', lineHeight: 1.5 }}>
+            {error}. El balance detallado está disponible exclusivamente para usuarios PREMIUM.
+          </p>
+          <button 
+            className="btn btn-primary"
+            onClick={() => window.location.href = '/settings'}
+          >
+            Ver Planes de Suscripción
+          </button>
+        </div>
+      ) : loading ? (
         <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
           <div className="spinner" style={{ margin: '0 auto 12px' }} /> Cargando...
         </div>

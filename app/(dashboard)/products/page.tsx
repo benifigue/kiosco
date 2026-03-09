@@ -42,6 +42,11 @@ export default function ProductsPage() {
   const [saving, setSaving] = useState(false);
   const [userRole, setUserRole] = useState<string>("COLABORADOR");
   const [showInactive, setShowInactive] = useState(false);
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Product | 'margin'; direction: 'asc' | 'desc' } | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [barcodeFilter, setBarcodeFilter] = useState("");
+  const [internalCodeFilter, setInternalCodeFilter] = useState("");
+  const [stockFilter, setStockFilter] = useState<"all" | "low" | "none">("all");
 
   // Confirm Modal state
   const [confirmToggle, setConfirmToggle] = useState<Product | null>(null);
@@ -70,15 +75,56 @@ export default function ProductsPage() {
     }
   }
 
-  const filtered = products.filter((p) => {
+  function handleSort(key: keyof Product | 'margin') {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  }
+
+  const sorted = [...products].sort((a, b) => {
+    if (!sortConfig) return 0;
+    
+    let aValue: any;
+    let bValue: any;
+
+    if (sortConfig.key === 'margin') {
+      aValue = a.salePrice > 0 ? (a.salePrice - a.purchasePrice) / a.salePrice : 0;
+      bValue = b.salePrice > 0 ? (b.salePrice - b.purchasePrice) / b.salePrice : 0;
+    } else {
+      aValue = a[sortConfig.key];
+      bValue = b[sortConfig.key];
+    }
+
+    if (aValue === null || aValue === undefined) return 1;
+    if (bValue === null || bValue === undefined) return -1;
+
+    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const filtered = sorted.filter((p) => {
+    const matchesCategory = categoryFilter === "all" || p.category === categoryFilter;
+    const matchesBarcode = (p.barcode ?? "").includes(barcodeFilter);
+    const matchesInternal = (p.internalCode ?? "").toLowerCase().includes(internalCodeFilter.toLowerCase());
+    
+    let matchesStock = true;
+    if (stockFilter === "low") matchesStock = p.stock > 0 && p.stock <= p.minStock;
+    if (stockFilter === "none") matchesStock = p.stock === 0;
+
     const q = search.toLowerCase();
-    return (
+    const matchesGeneral = 
       p.name.toLowerCase().includes(q) ||
       (p.barcode ?? "").includes(q) ||
       (p.internalCode ?? "").toLowerCase().includes(q) ||
-      p.category.toLowerCase().includes(q)
-    );
+      p.category.toLowerCase().includes(q);
+
+    return matchesCategory && matchesBarcode && matchesInternal && matchesStock && matchesGeneral;
   });
+
+  const categories = Array.from(new Set(products.map(p => p.category))).sort();
 
   function openCreate() {
     setEditing(null);
@@ -249,15 +295,80 @@ export default function ProductsPage() {
           <table>
             <thead>
               <tr>
-                <th>Nombre</th>
-                <th>Categoría</th>
-                <th>Cod. Barras</th>
-                <th>Cod. Interno</th>
-                <th>P. Compra</th>
-                <th>P. Venta</th>
-                <th>Margen</th>
-                <th>Stock</th>
-                <th>Estado</th>
+                <th onClick={() => handleSort('name')} style={{ cursor: 'pointer' }}>
+                  Nombre {sortConfig?.key === 'name' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                </th>
+                <th onClick={() => handleSort('category')} style={{ cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span>Categoría {sortConfig?.key === 'category' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</span>
+                    <select 
+                      className="input" 
+                      style={{ padding: '2px 4px', fontSize: '11px', height: 'auto', fontWeight: 400 }}
+                      value={categoryFilter}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
+                    >
+                      <option value="all">Todas</option>
+                      {categories.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('barcode')} style={{ cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span>Cod. Barras {sortConfig?.key === 'barcode' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</span>
+                    <input 
+                      className="input" 
+                      style={{ padding: '2px 4px', fontSize: '11px', height: 'auto', fontWeight: 400 }}
+                      placeholder="Filtrar..."
+                      value={barcodeFilter}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => setBarcodeFilter(e.target.value)}
+                    />
+                  </div>
+                </th>
+                <th onClick={() => handleSort('internalCode')} style={{ cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span>Cod. Interno {sortConfig?.key === 'internalCode' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</span>
+                    <input 
+                      className="input" 
+                      style={{ padding: '2px 4px', fontSize: '11px', height: 'auto', fontWeight: 400 }}
+                      placeholder="Filtrar..."
+                      value={internalCodeFilter}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => setInternalCodeFilter(e.target.value)}
+                    />
+                  </div>
+                </th>
+                <th onClick={() => handleSort('purchasePrice')} style={{ cursor: 'pointer' }}>
+                  P. Compra {sortConfig?.key === 'purchasePrice' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                </th>
+                <th onClick={() => handleSort('salePrice')} style={{ cursor: 'pointer' }}>
+                  P. Venta {sortConfig?.key === 'salePrice' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                </th>
+                <th onClick={() => handleSort('margin')} style={{ cursor: 'pointer' }}>
+                  Margen {sortConfig?.key === 'margin' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                </th>
+                <th onClick={() => handleSort('stock')} style={{ cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span>Stock {sortConfig?.key === 'stock' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</span>
+                    <select 
+                      className="input" 
+                      style={{ padding: '2px 4px', fontSize: '11px', height: 'auto', fontWeight: 400 }}
+                      value={stockFilter}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => setStockFilter(e.target.value as any)}
+                    >
+                      <option value="all">Todos</option>
+                      <option value="low">Stock bajo</option>
+                      <option value="none">Sin stock</option>
+                    </select>
+                  </div>
+                </th>
+                <th onClick={() => handleSort('active')} style={{ cursor: 'pointer' }}>
+                  Estado {sortConfig?.key === 'active' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                </th>
                 {userRole === "ADMIN" && <th>Acciones</th>}
               </tr>
             </thead>

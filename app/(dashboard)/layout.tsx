@@ -16,17 +16,26 @@ export default async function DashboardLayout({
   if (!user) redirect("/login");
 
   let storeName = "Kiosco";
+  let membershipType = "FREE";
+  let membershipExpires: Date | null = null;
+
   try {
-    // Check if the model exists in the client before calling it
     if ((prisma as any).storeConfig) {
       const storeConfig = await (prisma as any).storeConfig.findUnique({
         where: { id: "default-config" },
       });
-      if (storeConfig?.name) storeName = storeConfig.name;
+      if (storeConfig) {
+        if (storeConfig.name) storeName = storeConfig.name;
+        membershipType = storeConfig.membershipType || "FREE";
+        membershipExpires = storeConfig.membershipExpires;
+      }
     }
   } catch (err) {
     console.error("Error fetching store config:", err);
   }
+
+  // Check if membership has expired (only for FREE/PRO/PREMIUM if it's a trial or time-based)
+  const isExpired = membershipExpires && new Date(membershipExpires) < new Date();
 
   return (
     <ThemeProvider>
@@ -36,6 +45,7 @@ export default async function DashboardLayout({
             userName={user.name}
             userRole={user.role}
             storeName={storeName}
+            membershipType={membershipType}
           />
           <main
             style={{
@@ -44,8 +54,27 @@ export default async function DashboardLayout({
               padding: "28px 32px",
               minHeight: "100vh",
               background: "var(--bg)",
+              position: "relative",
             }}
           >
+            {isExpired && (
+              <div style={{
+                position: "sticky",
+                top: "-28px",
+                left: 0,
+                right: 0,
+                background: "var(--danger)",
+                color: "white",
+                padding: "10px",
+                margin: "-28px -32px 24px -32px",
+                textAlign: "center",
+                fontSize: "13px",
+                fontWeight: "bold",
+                zIndex: 10,
+              }}>
+                ⚠️ Su membresía ha expirado. Por favor, actualice su plan en Configuración para seguir operando.
+              </div>
+            )}
             {children}
           </main>
         </div>

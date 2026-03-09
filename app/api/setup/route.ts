@@ -39,17 +39,24 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(adminPassword, 12);
 
+    const trialExpires = new Date();
+    trialExpires.setDate(trialExpires.getDate() + 7);
+
     // Update or create store config
     await prisma.storeConfig.upsert({
       where: { id: 'default-config' },
       update: {
         name: storeName,
         setupCompleted: true,
+        membershipType: 'FREE',
+        membershipExpires: trialExpires,
       },
       create: {
         id: 'default-config',
         name: storeName,
         setupCompleted: true,
+        membershipType: 'FREE',
+        membershipExpires: trialExpires,
       },
     });
 

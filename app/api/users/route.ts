@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { createLog } from '@/lib/log';
 import { apiError, apiSuccess } from '@/lib/utils';
 import bcrypt from 'bcrypt';
+import { canCreateUser } from '@/lib/membership';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,6 +51,12 @@ export async function POST(request: NextRequest) {
 
     if (!VALID_ROLES.includes(role as Role)) {
       return apiError('Rol inválido');
+    }
+
+    // Check membership user limit
+    const check = await canCreateUser(role as Role);
+    if (!check.can) {
+      return apiError(check.message || 'Límite de usuarios alcanzado para su plan', 403);
     }
 
     if (password.length < 6) {

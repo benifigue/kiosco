@@ -21,6 +21,7 @@ interface User {
 export default function LogsPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [filterUserId, setFilterUserId] = useState("");
@@ -30,23 +31,32 @@ export default function LogsPage() {
   useEffect(() => {
     fetch("/api/users")
       .then((r) => r.json())
-      .then((d: User[]) => setUsers(d))
+      .then((d: User[]) => {
+        if (Array.isArray(d)) setUsers(d);
+      })
       .catch(() => {});
     loadLogs();
   }, []);
 
   async function loadLogs() {
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams();
       if (dateFrom) params.set("from", dateFrom);
       if (dateTo) params.set("to", dateTo);
       if (filterUserId) params.set("userId", filterUserId);
       const res = await fetch(`/api/logs?${params}`);
-      const data = (await res.json()) as LogEntry[];
-      setLogs(data);
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setError(data.error || "Error al cargar registros");
+        return;
+      }
+      
+      setLogs(data as LogEntry[]);
     } catch {
-      console.error("Error loading logs");
+      setError("Error de conexión al cargar registros");
     } finally {
       setLoading(false);
     }
@@ -140,7 +150,21 @@ export default function LogsPage() {
         />
       </div>
 
-      {loading ? (
+      {error ? (
+        <div className="card" style={{ textAlign: "center", padding: "60px", border: "1px dashed var(--border)" }}>
+          <div style={{ fontSize: "64px", marginBottom: "20px" }}>🛡️</div>
+          <h2 style={{ fontSize: "20px", marginBottom: "12px", color: "var(--text-primary)" }}>Acceso restringido</h2>
+          <p style={{ color: "var(--text-secondary)", marginBottom: "24px", maxWidth: "450px", margin: "0 auto 24px", lineHeight: 1.5 }}>
+            {error}. Los registros del sistema están disponibles en los planes PRO y PREMIUM.
+          </p>
+          <button 
+            className="btn btn-primary"
+            onClick={() => window.location.href = '/settings'}
+          >
+            Ver Planes Disponibles
+          </button>
+        </div>
+      ) : loading ? (
         <div
           style={{
             textAlign: "center",

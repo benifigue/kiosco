@@ -37,6 +37,7 @@ interface User {
 export default function StatsPage() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [filterUserId, setFilterUserId] = useState("");
@@ -48,7 +49,9 @@ export default function StatsPage() {
   useEffect(() => {
     fetch("/api/users")
       .then((r) => r.json())
-      .then((d: User[]) => setUsers(d))
+      .then((d: User[]) => {
+        if (Array.isArray(d)) setUsers(d);
+      })
       .catch(() => {});
     loadStats();
   }, []);
@@ -59,16 +62,23 @@ export default function StatsPage() {
 
   async function loadStats() {
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams();
       if (dateFrom) params.set("from", dateFrom);
       if (dateTo) params.set("to", dateTo);
       if (filterUserId) params.set("userId", filterUserId);
       const res = await fetch(`/api/stats?${params}`);
-      const data = (await res.json()) as StatsData;
-      setStats(data);
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setError(data.error || "Error al cargar estadísticas");
+        return;
+      }
+      
+      setStats(data as StatsData);
     } catch {
-      console.error("Error loading stats");
+      setError("Error de conexión al cargar estadísticas");
     } finally {
       setLoading(false);
     }
@@ -262,7 +272,21 @@ export default function StatsPage() {
         </div>
       </div>
 
-      {loading ? (
+      {error ? (
+        <div className="card" style={{ textAlign: "center", padding: "60px", border: "1px dashed var(--border)" }}>
+          <div style={{ fontSize: "64px", marginBottom: "20px" }}>🛡️</div>
+          <h2 style={{ fontSize: "20px", marginBottom: "12px", color: "var(--text-primary)" }}>Acceso no disponible</h2>
+          <p style={{ color: "var(--text-secondary)", marginBottom: "24px", maxWidth: "450px", margin: "0 auto 24px", lineHeight: 1.5 }}>
+            {error}. Para acceder a esta funcionalidad, por favor actualiza tu plan en la sección de configuración.
+          </p>
+          <button 
+            className="btn btn-primary"
+            onClick={() => window.location.href = '/settings'}
+          >
+            Ver Planes Disponibles
+          </button>
+        </div>
+      ) : loading ? (
         <div
           style={{
             textAlign: "center",

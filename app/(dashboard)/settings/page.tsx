@@ -14,6 +14,47 @@ interface Config {
   membershipExpires: string | null;
 }
 
+const PlanFeatures = ({ type }: { type: string }) => {
+  const features = {
+    FREE: [
+      { name: "7 días de prueba del sistema", included: true },
+      { name: "Limitación: 1 admin y 1 colaborador", included: true },
+      { name: "Página de estadísticas", included: false },
+      { name: "Registros del sistema", included: false },
+    ],
+    PRO: [
+      { name: "Sistema completo sin limitaciones de usuarios", included: true },
+      { name: "Acceso a registros del sistema", included: true },
+      { name: "Página de estadísticas", included: false },
+    ],
+    PREMIUM: [
+      { name: "Sistema completo sin ningún tipo de limitaciones", included: true },
+      { name: "Página de estadísticas avanzada", included: true },
+      { name: "Acceso a registros del sistema", included: true },
+    ]
+  };
+
+  const currentFeatures = (features as any)[type] || features.FREE;
+
+  return (
+    <div className="card" style={{ marginTop: '4px' }}>
+      <h3 style={{ margin: "0 0 16px", fontSize: "16px" }}>Características de tu Plan</h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {currentFeatures.map((f: any, i: number) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px' }}>
+            <span style={{ fontSize: '12px' }}>
+              {f.included ? '✅' : '❌'}
+            </span>
+            <span style={{ color: f.included ? 'var(--text)' : 'var(--text-muted)' }}>
+              {f.name}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export default function SettingsPage() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -326,6 +367,8 @@ export default function SettingsPage() {
               </div>
             )}
           </div>
+
+          <PlanFeatures type={form.membershipType} />
 
           {/* Activation card */}
           {userRole === "ADMIN" && (

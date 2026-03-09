@@ -27,9 +27,10 @@ interface SidebarProps {
   userName: string;
   userRole: 'ADMIN' | 'COLABORADOR';
   storeName: string;
+  membershipType: string;
 }
 
-export function Sidebar({ userName, userRole, storeName }: SidebarProps) {
+export function Sidebar({ userName, userRole, storeName, membershipType }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
@@ -40,9 +41,21 @@ export function Sidebar({ userName, userRole, storeName }: SidebarProps) {
     router.refresh();
   }
 
-  const visibleItems = NAV_ITEMS.filter(
-    (item) => !item.adminOnly || userRole === 'ADMIN'
-  );
+  const visibleItems = NAV_ITEMS.filter((item) => {
+    // Basic admin check
+    if (item.adminOnly && userRole !== 'ADMIN') return false;
+
+    // Membership restrictions
+    if (membershipType === 'FREE') {
+      if (item.href === '/stats' || item.href === '/balance' || item.href === '/logs') return false;
+    }
+
+    if (membershipType === 'PRO') {
+      if (item.href === '/stats' || item.href === '/balance') return false;
+    }
+
+    return true;
+  });
 
   return (
     <nav
