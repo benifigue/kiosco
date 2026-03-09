@@ -116,6 +116,20 @@ async function main() {
     },
   });
 
+  await prisma.storeConfig.upsert({
+    where: { id: 'default-config' },
+    update: {},
+    create: {
+      id: 'default-config',
+      name: 'Mi Kiosco',
+      description: 'Gestión profesional para tu negocio',
+      address: 'Calle Falsa 123',
+      phone: '11 1234-5678',
+      currency: 'ARS',
+      setupCompleted: true,
+    },
+  });
+
   await prisma.systemLog.create({
     data: {
       userId: admin.id,

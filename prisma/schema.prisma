@@ -98,3 +98,15 @@ model SystemLog {
   action    String
   createdAt DateTime @default(now())
 }
+
+model StoreConfig {
+  id             String   @id @default("default-config")
+  name           String   @default("Mi Kiosco")
+  description    String?
+  address        String?
+  phone          String?
+  email          String?
+  currency       String   @default("ARS")
+  setupCompleted Boolean  @default(false)
+  updatedAt      DateTime @updatedAt
+}

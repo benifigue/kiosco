@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
@@ -9,6 +9,21 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    async function checkSetup() {
+      try {
+        const res = await fetch('/api/setup');
+        const data = await res.json();
+        if (res.ok && data.setupCompleted === false) {
+          router.push('/setup');
+        }
+      } catch (err) {
+        console.error("Setup check failed", err);
+      }
+    }
+    checkSetup();
+  }, [router]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();

@@ -20,14 +20,16 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/balance', label: 'Balance', icon: '📈', adminOnly: true },
   { href: '/users', label: 'Usuarios', icon: '👥', adminOnly: true },
   { href: '/logs', label: 'Registros', icon: '📋', adminOnly: true },
+  { href: '/settings', label: 'Configuración', icon: '⚙️', adminOnly: true },
 ];
 
 interface SidebarProps {
   userName: string;
   userRole: 'ADMIN' | 'COLABORADOR';
+  storeName: string;
 }
 
-export function Sidebar({ userName, userRole }: SidebarProps) {
+export function Sidebar({ userName, userRole, storeName }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
@@ -85,9 +87,14 @@ export function Sidebar({ userName, userRole }: SidebarProps) {
                 fontWeight: 700,
                 color: '#fff',
                 lineHeight: 1.2,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                maxWidth: '140px',
               }}
+              title={storeName}
             >
-              Kiosco
+              {storeName}
             </div>
             <div style={{ fontSize: '10px', color: '#475569', letterSpacing: '0.1em' }}>MANAGER</div>
           </div>
