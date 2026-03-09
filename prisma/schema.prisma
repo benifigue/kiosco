@@ -100,13 +100,19 @@ model SystemLog {
 }
 
 model StoreConfig {
-  id             String   @id @default("default-config")
-  name           String   @default("Mi Kiosco")
-  description    String?
-  address        String?
-  phone          String?
-  email          String?
-  currency       String   @default("ARS")
-  setupCompleted Boolean  @default(false)
-  updatedAt      DateTime @updatedAt
+  id              String    @id @default("default-config")
+  name            String    @default("Mi Kiosco")
+  description     String?
+  address         String?
+  phone           String?
+  email           String?
+  currency        String    @default("ARS")
+  setupCompleted  Boolean   @default(false)
+  
+  // Membership fields
+  membershipKey   String?   // La clave encriptada/firmada
+  membershipType  String    @default("FREE") // "FREE", "PRO", "PREMIUM"
+  membershipExpires DateTime?
+  
+  updatedAt       DateTime  @updatedAt
 }

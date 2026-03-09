@@ -66,3 +66,65 @@ export async function PUT(request: NextRequest) {
     return apiError('Error al actualizar configuración', 500);
   }
 }
+
+export async function POST(request: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user) return apiError('No autorizado', 401);
+  if (user.role !== 'ADMIN') return apiError('Acceso denegado', 403);
+
+  try {
+    const body = await request.json();
+    const { key } = body;
+
+    if (!key) return apiError('La clave es requerida');
+
+    // Basic validation
+    const parts = key.split('.');
+    if (parts.length !== 2) return apiError('Formato de clave inválido');
+
+    const [payloadBase64, signature] = parts;
+    const payloadStr = Buffer.from(payloadBase64, 'base64').toString();
+    const payload = JSON.parse(payloadStr);
+
+    // Verify signature
+    const crypto = require('crypto');
+    const SECRET = process.env.MEMBERSHIP_SECRET || 'clave-secreta-para-kiosco-manager-2024';
+    const expectedSignature = crypto.createHmac('sha256', SECRET).update(payloadStr).digest('hex').substring(0, 16);
+
+    if (signature !== expectedSignature) {
+      return apiError('Clave de activación inválida o alterada');
+    }
+
+    // Verify expiration
+    if (payload.e < Date.now()) {
+      return apiError('Esta clave de membresía ya ha expirado');
+    }
+
+    // Get current config
+    const config = await prisma.storeConfig.findUnique({
+      where: { id: 'default-config' },
+    });
+
+    // Verify store name (optional, but requested)
+    if (config?.name !== payload.s) {
+      return apiError(`Esta clave fue generada para "${payload.s}", no coincide con su negocio.`);
+    }
+
+    // Apply membership
+    const updated = await prisma.storeConfig.update({
+      where: { id: 'default-config' },
+      data: {
+        membershipKey: key,
+        membershipType: payload.t,
+        membershipExpires: new Date(payload.e),
+      },
+    });
+
+    await createLog(user.id, `Membresía activada: ${payload.t} hasta ${new Date(payload.e).toLocaleDateString()}`);
+
+    return apiSuccess(updated);
+  } catch (error) {
+    console.error('Activation error:', error);
+    return apiError('Error al procesar la clave de activación', 500);
+  }
+}
