@@ -3,6 +3,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,7 @@ export default function CashPage() {
   const [movAmount, setMovAmount] = useState("");
   const [movDesc, setMovDesc] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
 
   useEffect(() => {
     loadAll();
@@ -163,6 +165,11 @@ export default function CashPage() {
   async function handleCloseRegister(e: FormEvent) {
     e.preventDefault();
     if (!openRegister) return;
+    setShowConfirmClose(true);
+  }
+
+  async function performCloseRegister() {
+    if (!openRegister) return;
     setSaving(true);
     try {
       const res = await fetch(`/api/cash-register/${openRegister.id}`, {
@@ -177,6 +184,7 @@ export default function CashPage() {
       }
       showToast("Caja cerrada", "success");
       setClosingAmount("");
+      setShowConfirmClose(false);
       loadAll();
     } catch {
       showToast("Error de conexión", "error");
@@ -935,6 +943,17 @@ export default function CashPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={showConfirmClose}
+        onClose={() => setShowConfirmClose(false)}
+        onConfirm={performCloseRegister}
+        title="Cerrar caja"
+        message={`¿Estás seguro de que deseas cerrar la caja con un monto de ${formatCurrency(Number(closingAmount))}? Esta acción es irreversible.`}
+        confirmText="Cerrar caja"
+        variant="danger"
+        loading={saving}
+      />
     </div>
   );
 }

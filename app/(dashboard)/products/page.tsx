@@ -3,6 +3,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,10 @@ export default function ProductsPage() {
   const [saving, setSaving] = useState(false);
   const [userRole, setUserRole] = useState<string>("COLABORADOR");
   const [showInactive, setShowInactive] = useState(false);
+
+  // Confirm Modal state
+  const [confirmToggle, setConfirmToggle] = useState<Product | null>(null);
+  const [toggling, setToggling] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -140,6 +145,15 @@ export default function ProductsPage() {
   }
 
   async function handleToggleActive(p: Product) {
+    if (p.active) {
+      setConfirmToggle(p);
+      return;
+    }
+    await performToggle(p);
+  }
+
+  async function performToggle(p: Product) {
+    setToggling(true);
     try {
       const res = await fetch(`/api/products/${p.id}`, {
         method: "PUT",
@@ -154,9 +168,12 @@ export default function ProductsPage() {
         p.active ? "Producto desactivado" : "Producto activado",
         "success",
       );
+      setConfirmToggle(null);
       loadProducts();
     } catch {
       showToast("Error de conexión", "error");
+    } finally {
+      setToggling(false);
     }
   }
 
@@ -515,6 +532,17 @@ export default function ProductsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!confirmToggle}
+        onClose={() => setConfirmToggle(null)}
+        onConfirm={() => confirmToggle && performToggle(confirmToggle)}
+        title="Desactivar producto"
+        message={`¿Estás seguro de que deseas desactivar el producto "${confirmToggle?.name}"? Ya no aparecerá en las búsquedas de venta.`}
+        confirmText="Desactivar"
+        variant="danger"
+        loading={toggling}
+      />
     </div>
   );
 }

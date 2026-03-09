@@ -3,6 +3,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { formatDate } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 interface User {
   id: string;
@@ -20,7 +21,8 @@ export default function UsersPage() {
   const [editing, setEditing] = useState<User | null>(null);
   const [form, setForm] = useState({ name: '', username: '', password: '', role: 'COLABORADOR' });
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<User | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => { loadUsers(); }, []);
 
@@ -79,19 +81,23 @@ export default function UsersPage() {
   }
 
   async function handleDelete(u: User) {
-    if (!confirm(`¿Eliminar usuario "${u.username}"? Esta acción es irreversible.`)) return;
-    setDeleting(u.id);
+    setConfirmDelete(u);
+  }
+
+  async function performDelete(u: User) {
+    setDeleting(true);
 
     try {
       const res = await fetch(`/api/users/${u.id}`, { method: 'DELETE' });
       const data = await res.json() as { error?: string };
       if (!res.ok) { showToast(data.error ?? 'Error', 'error'); return; }
       showToast('Usuario eliminado', 'success');
+      setConfirmDelete(null);
       loadUsers();
     } catch {
       showToast('Error de conexión', 'error');
     } finally {
-      setDeleting(null);
+      setDeleting(false);
     }
   }
 
@@ -141,9 +147,8 @@ export default function UsersPage() {
                         className="btn btn-danger"
                         style={{ padding: '4px 10px', fontSize: '12px' }}
                         onClick={() => handleDelete(u)}
-                        disabled={deleting === u.id}
                       >
-                        {deleting === u.id ? '...' : 'Eliminar'}
+                        Eliminar
                       </button>
                     </div>
                   </td>
@@ -200,6 +205,17 @@ export default function UsersPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() => confirmDelete && performDelete(confirmDelete)}
+        title="Eliminar usuario"
+        message={`¿Estás seguro de que deseas eliminar al usuario "${confirmDelete?.username}"? Esta acción es irreversible.`}
+        confirmText="Eliminar"
+        variant="danger"
+        loading={deleting}
+      />
     </div>
   );
 }
